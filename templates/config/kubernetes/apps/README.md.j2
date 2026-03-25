@@ -1,0 +1,56 @@
+# App Exposure Guide
+
+This template uses Gateway API with two shared gateways in the `traefik` namespace:
+
+- `public` for internet-facing routes
+- `private` for internal-only routes
+
+## Recommended pattern
+
+1. Put each app in its own namespace.
+2. Attach each app `HTTPRoute` to the matching gateway with `parentRefs`.
+3. Optionally add an app-level label/annotation to record intended exposure (for policy checks).
+
+Example `HTTPRoute` attachment:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: my-app
+  namespace: my-app
+spec:
+  parentRefs:
+    - name: private
+      namespace: traefik
+      sectionName: websecure
+  hostnames:
+    - my-app.${SECRET_DOMAIN}
+  rules:
+    - backendRefs:
+        - name: my-app
+          port: 80
+```
+
+Switch `parentRefs[].name` to `public` to expose an app publicly.
+
+## App-level exposure metadata (optional)
+
+If you want app-level intent without namespace-based control, use labels/annotations on the `HTTPRoute` (or owning HelmRelease), for example:
+
+```yaml
+metadata:
+  labels:
+    ingress.home-ops.io/class: private
+  annotations:
+    ingress.home-ops.io/class: private
+```
+
+## Optional policy guardrails (GitOps-friendly)
+
+If you want stronger enforcement, add a policy engine (for example Kyverno) to reject mismatches, like:
+
+- an `HTTPRoute` labeled/annotated `private` trying to attach to `public`
+- an `HTTPRoute` labeled/annotated `public` trying to attach to `private`
+
+That gives you declarative, reviewable exposure controls in Git without needing custom controllers.

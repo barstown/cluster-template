@@ -12,10 +12,10 @@ With this approach, you'll gain a solid foundation to build and manage your Kube
 
 ## ✨ Features
 
-A Kubernetes cluster deployed with [Talos Linux](https://github.com/siderolabs/talos) and an opinionated implementation of [Flux](https://github.com/fluxcd/flux2) using [GitHub](https://github.com/) as the Git provider, [sops](https://github.com/getsops/sops) to manage secrets and [cloudflared](https://github.com/cloudflare/cloudflared) to access applications external to your local network.
+A Kubernetes cluster deployed with [Talos Linux](https://github.com/siderolabs/talos) and an opinionated implementation of [Flux](https://github.com/fluxcd/flux2) using [GitHub](https://github.com/) as the Git provider and [sops](https://github.com/getsops/sops) to manage secrets.
 
 - **Required:** Some knowledge of [Containers](https://opencontainers.org/), [YAML](https://noyaml.com/), [Git](https://git-scm.com/), and a **Cloudflare account** with a **domain**.
-- **Included components:** [flux](https://github.com/fluxcd/flux2), [cilium](https://github.com/cilium/cilium), [cert-manager](https://github.com/cert-manager/cert-manager), [spegel](https://github.com/spegel-org/spegel), [reloader](https://github.com/stakater/Reloader), [envoy-gateway](https://github.com/envoyproxy/gateway), [external-dns](https://github.com/kubernetes-sigs/external-dns) and [cloudflared](https://github.com/cloudflare/cloudflared).
+- **Included components:** [flux](https://github.com/fluxcd/flux2), [flux-operator](https://github.com/controlplaneio-fluxcd/flux-operator), [cilium](https://github.com/cilium/cilium), [cert-manager](https://github.com/cert-manager/cert-manager), [spegel](https://github.com/spegel-org/spegel), [reloader](https://github.com/stakater/Reloader), [traefik](https://github.com/traefik/traefik) and [k8s-gateway](https://github.com/k8s-gateway/k8s-gateway).
 
 **Other features include:**
 
@@ -43,12 +43,13 @@ These guidelines provide a strong baseline, but there are always exceptions and 
 ### Stage 2: Machine Preparation
 
 > [!IMPORTANT]
-> If you have **3 or more nodes** it is recommended to make 3 of them controller nodes for a highly available control plane. This project configures **all nodes** to be able to run workloads. **Worker nodes** are therefore **optional**.
+> If you have **3 or more nodes** it is recommended to make 3 of them controller nodes for a highly available control plane. This project defaults to **dedicated control plane** and **worker** roles.
 >
 > **Minimum system requirements**
 > | Role    | Cores    | Memory        | System Disk               |
 > |---------|----------|---------------|---------------------------|
-> | Control/Worker | 4 | 16GB | 256GB SSD/NVMe |
+> | Control Plane | 4 | 16GB | 256GB SSD/NVMe |
+> | Worker | 4 | 8GB | 128GB SSD/NVMe |
 
 1. Head over to the [Talos Linux Image Factory](https://factory.talos.dev) and follow the instructions. Be sure to only choose the **bare-minimum system extensions** as some might require additional configuration and prevent Talos from booting without it. Depending on your CPU start with the Intel/AMD system extensions (`i915`, `intel-ucode` & `mei` **or** `amdgpu` & `amd-ucode`), you can always add system extensions after Talos is installed and working.
 
@@ -103,20 +104,13 @@ These guidelines provide a strong baseline, but there are always exceptions and 
 > [!WARNING]
 > If any of the commands fail with `command not found` or `unknown command` it means `mise` is either not installed, activated or it could be configured incorrectly.
 
-1. Create a Cloudflare API token for use with cloudflared and external-dns by reviewing the official [documentation](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) and following the instructions below.
+1. Create a Cloudflare API token for use with cert-manager by reviewing the official [documentation](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/) and following the instructions below.
 
    - Click the blue `Use template` button for the `Edit zone DNS` template.
    - Name your token `kubernetes`
-   - Under `Permissions`, click `+ Add More` and add permissions `Zone - DNS - Edit` and `Account - Cloudflare Tunnel - Read`
+   - Under `Permissions`, click `+ Add More` and add permission `Zone - DNS - Edit`
    - Limit the permissions to a specific account and/or zone resources and then click `Continue to Summary` and then `Create Token`.
    - **Save this token somewhere safe**, you will need it later on.
-
-2. Create the Cloudflare Tunnel:
-
-    ```sh
-    cloudflared tunnel login
-    cloudflared tunnel create --credentials-file cloudflare-tunnel.json kubernetes
-    ```
 
 ### Stage 5: Cluster configuration
 
@@ -145,7 +139,7 @@ These guidelines provide a strong baseline, but there are always exceptions and 
     ```
 
 > [!TIP]
-> Using a **private repository**? Make sure to paste the public key from `github-deploy.key.pub` into the deploy keys section of your GitHub repository settings. This will make sure Flux has read/write access to your repository.
+> Add the public key from `github-deploy.key.pub` to the deploy keys section of your GitHub repository settings. Flux uses this key (stored as the `git` secret) for repository access.
 
 ### Stage 6: Bootstrap Talos, Kubernetes, and Flux
 
@@ -166,7 +160,7 @@ These guidelines provide a strong baseline, but there are always exceptions and 
     git push
     ```
 
-3. Install cilium, coredns, spegel, flux and sync the cluster to the repository state:
+3. Install cilium, spegel, flux and sync the cluster to the repository state:
 
     ```sh
     task bootstrap:apps
@@ -224,38 +218,32 @@ These guidelines provide a strong baseline, but there are always exceptions and 
 ### 🌐 Public DNS
 
 > [!TIP]
-> Use the `envoy-external` gateway on `HTTPRoutes` to make applications public to the internet. These are also accessible on your private network once you set up split DNS.
+> Use the `public` gateway on `HTTPRoutes` to make applications public to the internet.
 
-The `external-dns` application created in the `network` namespace will handle creating public DNS records. By default, `echo` and the `flux-webhook` are the only subdomains reachable from the public internet. In order to make additional applications public you must **set the correct gateway** like in the HelmRelease for `echo`.
+Traefik and Gateway API resources in the `traefik` namespace provide public and private entrypoints. Public DNS records should be managed by your preferred DNS workflow.
 
 ### 🏠 Home DNS
 
 > [!TIP]
-> Use the `envoy-internal` gateway on `HTTPRoutes` to make applications private to your network. If you're having trouble with internal DNS resolution check out [this](https://github.com/onedr0p/cluster-template/discussions/719) GitHub discussion.
+> Use the `private` gateway on `HTTPRoutes` to make applications private to your network.
 
 `k8s_gateway` will provide DNS resolution to external Kubernetes resources (i.e. points of entry to the cluster) from any device that uses your home DNS server. For this to work, your home DNS server must be configured to forward DNS queries for `${cloudflare_domain}` to `${cluster_dns_gateway_addr}` instead of the upstream DNS server(s) it normally uses. This is a form of **split DNS** (aka split-horizon DNS / conditional forwarding).
 
 _... Nothing working? That is expected, this is DNS after all!_
 
-### 🪝 GitHub Webhook
+### 🔐 App exposure model
 
-By default Flux will periodically check your git repository for changes. In-order to have Flux reconcile on `git push` you must configure GitHub to send `push` events to Flux.
+Routes are attached natively with Gateway API (`HTTPRoute` + `parentRefs`).
 
-1. Obtain the webhook path:
+- Use gateway `public` for internet-facing apps.
+- Use gateway `private` for internal-only apps.
+- If desired, record exposure intent with app-level labels/annotations on routes.
 
-   📍 _Hook id and path should look like `/hook/12ebd1e363c641dc3c2e430ecf3cee2b3c7a5ac9e1234506f6f5f3ce1230e123`_
+The full exposure guide (with examples and optional policy-engine guardrails) is in `kubernetes/apps/README.md` after rendering.
 
-    ```sh
-    kubectl -n flux-system get receiver github-webhook --output=jsonpath='{.status.webhookPath}'
-    ```
+### 🪝 Flux reconciliation
 
-2. Piece together the full URL with the webhook path appended:
-
-    ```text
-    https://flux-webhook.${cloudflare_domain}/hook/12ebd1e363c641dc3c2e430ecf3cee2b3c7a5ac9e1234506f6f5f3ce1230e123
-    ```
-
-3. Navigate to the settings of your repository on GitHub, under "Settings/Webhooks" press the "Add webhook" button. Fill in the webhook URL and your token from `github-push-token.txt`, Content type: `application/json`, Events: Choose Just the push event, and save.
+By default Flux periodically checks your git repository for changes on its configured interval.
 
 ## 💥 Reset
 
@@ -404,16 +392,7 @@ Below are some optional considerations you may want to explore.
 
 ### DNS
 
-The template uses [k8s_gateway](https://github.com/k8s-gateway/k8s_gateway) to provide DNS for your applications, consider exploring [external-dns](https://github.com/kubernetes-sigs/external-dns) as an alternative.
-
-External-DNS offers broad support for various DNS providers, including but not limited to:
-
-- [Pi-hole](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/pihole.md)
-- [UniFi](https://github.com/kashalls/external-dns-unifi-webhook)
-- [Adguard Home](https://github.com/muhlba91/external-dns-provider-adguard)
-- [Bind](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/rfc2136.md)
-
-This flexibility allows you to integrate seamlessly with a range of DNS solutions to suit your environment and offload DNS from your cluster to your router, or external device.
+The template uses [k8s_gateway](https://github.com/k8s-gateway/k8s_gateway) to provide DNS for your applications. You can integrate an external DNS controller/provider later if you prefer managing records outside the cluster.
 
 ### Secrets
 

@@ -1,7 +1,14 @@
 machine:
   kubelet:
     extraConfig:
+      imageGCHighThresholdPercent: 70
+      imageGCLowThresholdPercent: 30
       serializeImagePulls: false
+    extraArgs:
+      eviction-hard: imagefs.available<10%,nodefs.available<10%,nodefs.inodesFree<5%
+      eviction-soft: imagefs.available<15%,nodefs.available<15%,nodefs.inodesFree<10%
+      eviction-soft-grace-period: imagefs.available=1m,nodefs.available=1m,nodefs.inodesFree=1m
+      eviction-max-pod-grace-period: "30"
     nodeIP:
       validSubnets:
         - #{ node_cidr }#

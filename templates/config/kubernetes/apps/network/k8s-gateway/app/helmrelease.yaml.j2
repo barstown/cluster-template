@@ -19,3 +19,5 @@ spec:
         lbipam.cilium.io/ips: "#{ cluster_dns_gateway_addr }#"
       externalTrafficPolicy: Cluster
     watchedResources: ["HTTPRoute", "Service"]
+    serviceMonitor:
+      enabled: true

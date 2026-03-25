@@ -4,6 +4,8 @@ kind: Kustomization
 metadata:
   name: k8s-gateway
 spec:
+  dependsOn:
+    - name: traefik
   interval: 1h
   path: ./kubernetes/apps/network/k8s-gateway/app
   postBuild:
@@ -15,5 +17,5 @@ spec:
     kind: GitRepository
     name: flux-system
     namespace: flux-system
-  targetNamespace: network
+  targetNamespace: k8s-gateway
   wait: false

@@ -62,9 +62,9 @@ spec:
       app:
         hostnames: ["{{ .Release.Name }}.${SECRET_DOMAIN}"]
         parentRefs:
-          - name: envoy-external
-            namespace: network
-            sectionName: https
+          - name: public
+            namespace: traefik
+            sectionName: websecure
         rules:
           - backendRefs:
               - identifier: app

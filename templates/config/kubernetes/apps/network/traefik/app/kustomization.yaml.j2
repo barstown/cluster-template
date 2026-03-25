@@ -1,0 +1,14 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./namespace.yaml
+  - ./certificate.yaml
+  - ./gatewayclass.yaml
+  - ./gateway-public.yaml
+  - ./gateway-private.yaml
+  - ./helmrelease.yaml
+  - ./httproute-redirect.yaml
+  - ./middleware-dashboard-whitelist.yaml
+  - ./ocirepository.yaml
+  - ./ingressroute-dashboard.yaml

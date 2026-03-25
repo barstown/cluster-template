@@ -41,7 +41,6 @@ jobs:
         run: |
           cp ./.github/tests/${{ matrix.config-files }}.yaml cluster.yaml
           cp ./.github/tests/nodes.yaml nodes.yaml
-          echo '{"AccountTag":"fake","TunnelSecret":"fake","TunnelID":"fake"}' > cloudflare-tunnel.json
           touch kubeconfig
 
       - name: Run configure task

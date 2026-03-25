@@ -16,7 +16,6 @@ tasks:
       - task: generate-template-config
       - task: generate-age-key
       - task: generate-deploy-key
-      - task: generate-push-token
 
   generate-template-config:
     internal: true
@@ -43,12 +42,6 @@ tasks:
     preconditions:
       - which ssh-keygen
 
-  generate-push-token:
-    internal: true
-    cmd: python -c "import secrets; print(secrets.token_hex(16))" > {{.ROOT_DIR}}/github-push-token.txt
-    status:
-      - test -f {{.ROOT_DIR}}/github-push-token.txt
-
   :configure:
     desc: Render and validate configuration files
     prompt: Any conflicting files in the kubernetes directory will be overwritten... continue?
@@ -65,8 +58,6 @@ tasks:
         sh: test -f {{.TEMPLATE_CONFIG_FILE}}
       - msg: File nodes.yaml not found, did you run `task init`?
         sh: test -f {{.TEMPLATE_NODE_CONFIG_FILE}}
-      - msg: File cloudflare-tunnel.json not found, see the README for information on creating it.
-        sh: test -f {{.ROOT_DIR}}/cloudflare-tunnel.json
 
   validate-schemas:
     internal: true

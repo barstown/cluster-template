@@ -51,15 +51,14 @@ repository_name: ""
 #    (OPTIONAL) / (DEFAULT: "main")
 # repository_branch: ""
 
-# -- Repository visibility (public or private)
-#    (OPTIONAL) / (DEFAULT: "public") / (NOTE: See the README for information when set private)
-# repository_visibility: ""
+# -- The deploy key can be used with both public and private repositories.
+#    Ensure github-deploy.key.pub is added to repository deploy keys.
 
 # -- Domain you wish to use from your Cloudflare account
 #    (REQUIRED) / (e.g. "example.com")
 cloudflare_domain: ""
 
-# -- API Token for Cloudflare with the 'Zone:DNS:Edit' and 'Account:Cloudflare Tunnel:Read' permissions
+# -- API Token for Cloudflare with the 'Zone:DNS:Edit' permission
 #    (REQUIRED) (NOTE: See the README for information on creating this)
 cloudflare_token: ""
 

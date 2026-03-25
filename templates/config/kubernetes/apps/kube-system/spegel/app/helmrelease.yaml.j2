@@ -1,4 +1,3 @@
-#% if spegel_enabled %#
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -12,10 +11,15 @@ spec:
   values:
     spegel:
       containerdSock: /run/containerd/containerd.sock
-      containerdRegistryConfigPath: /etc/cri/conf.d/hosts
+      containerdRegistryConfigPath: /etc/containerd/certs.d
+      mirroredRegistries:
+        - https://docker.io
+        - https://ghcr.io
+        - https://quay.io
+        - https://registry.k8s.io
+        - https://gcr.io
     service:
       registry:
-        hostPort: 29999
+        hostPort: 30020
     serviceMonitor:
       enabled: true
-#% endif %#

@@ -9,15 +9,10 @@ helmDefaults:
     - --no-hooks
 
 releases:
-  - name: cloudflare-dns
-    namespace: network
-    chart: oci://ghcr.io/home-operations/charts-mirror/external-dns
-    version: 1.20.0
-
-  - name: envoy-gateway
-    namespace: network
-    chart: oci://mirror.gcr.io/envoyproxy/gateway-helm
-    version: v1.7.0
+  - name: traefik
+    namespace: traefik
+    chart: oci://ghcr.io/traefik/helm/traefik
+    version: 39.0.4
 
   - name: kube-prometheus-stack
     namespace: observability

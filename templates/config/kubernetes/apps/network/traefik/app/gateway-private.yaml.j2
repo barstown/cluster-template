@@ -1,0 +1,31 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: private
+  labels:
+    ingress: private
+  annotations:
+    io.cilium/lb-ipam-ips: "#{ cluster_gateway_addr }#"
+spec:
+  gatewayClassName: traefik
+  infrastructure:
+    labels:
+      ingress: private
+  listeners:
+    - name: web
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: websecure
+      protocol: HTTPS
+      port: 443
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: ${SECRET_DOMAIN/./-}-production-tls
+      allowedRoutes:
+        namespaces:
+          from: All

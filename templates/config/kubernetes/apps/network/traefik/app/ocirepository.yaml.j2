@@ -2,12 +2,12 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
-  name: coredns
+  name: traefik
 spec:
   interval: 15m
   layerSelector:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
-  url: oci://ghcr.io/coredns/charts/coredns
   ref:
-    tag: 1.45.2
+    tag: 39.0.4
+  url: oci://ghcr.io/traefik/helm/traefik
